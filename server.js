@@ -1,30 +1,43 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const fetch = require("node-fetch");
-const app = express();
-const PORT = process.env.PORT || 3000;
+const form = document.querySelector("form");
+const chatContainer = document.querySelector("#chat-container");
 
-const GEMINI_API_KEY = "REPLACE_WITH_YOUR_API_KEY";
+function addMessage(sender, text) {
+  const messageDiv = document.createElement("div");
+  messageDiv.classList.add("message", sender);
+  messageDiv.textContent = text;
+  chatContainer.appendChild(messageDiv);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
 
-app.use(bodyParser.json());
-app.use(express.static("."));
+async function sendMessage(text) {
+  addMessage("user", text);
 
-app.post("/api/chat", async (req, res) => {
-  const text = req.body.text || "";
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyCURz7A2o4Eb0iZa_rGxP5Rxgb5zL3oUkA", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: text }] }]
       })
     });
+
     const data = await response.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
-    res.json({ reply });
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn’t understand.";
+    addMessage("bot", reply);
   } catch (error) {
-    res.json({ reply: "Error talking to Gemini." });
+    addMessage("bot", "An error occurred while talking to Gemini.");
+    console.error(error);
+  }
+}
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = form.querySelector("input");
+  const text = input.value.trim();
+  if (text !== "") {
+    sendMessage(text);
+    input.value = "";
   }
 });
-
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
